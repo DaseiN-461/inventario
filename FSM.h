@@ -1,6 +1,7 @@
 
 #include "touchButtons.h"
-#include "defs.h"
+
+#include "log.h"
 
 ////////////////////////////////////////////////// FSM Definicion de estados //////////////////////////////////////////////////
 enum state_UI{
@@ -118,6 +119,7 @@ void FSM_UI_Handler(){
         temp_product = 0;
         temp_process = false;
         temp_quantity = 0;
+        save_log_in_eeprom();
         viewLog();     
       }
       if(touchLeftPressed){

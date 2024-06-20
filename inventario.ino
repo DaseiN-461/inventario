@@ -1,12 +1,14 @@
 #include "FSM.h"
 
+#include 
 
 void setup() {
   Serial.begin(115200);
 
   touchButtons_init();
-  createLog();
-  viewLog();
+
+  
+  log_init();
   
 }
 

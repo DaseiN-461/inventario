@@ -1,13 +1,32 @@
-typedef struct{
-  int id;
-  String product_name;
-  int quantity;
-}Product;
+// WiFi
+const char* ssid = "Copérnico 5G";
+const char* password = "MMM...copito";
+
+// URL del script de Google Apps Script
+const char* scriptUrl = "https://script.google.com/macros/s/AKfycbyzmbO4d70uM426vGb-P67jTANACuJ9tkI4sopNVSqS_l3TjI8iTn9jTHcbKNhxDP5K/exec";
+
+const int MAX_PRODUCTS = 20;
 
 
-const int MAX_PRODUCTS = 5;
+
+// Define la clase Product
+class Product {
+  public:
+    String name;
+    int quantity;
+
+    Product() {}
+
+    Product(String n, int q) {
+      name = n;
+      quantity = q;
+    }
+};
+
+
+
 // Arreglo de productos
-Product products[MAX_PRODUCTS];
+Product inventory[MAX_PRODUCTS];
 
 
 // Variables temporales
@@ -18,35 +37,6 @@ int temp_process = false;
 // cantidad de producto seleccionado
 int temp_quantity = 0;
 
-
-
-void createLog();
-void logUpdate(int product, bool process, int cantity);
-void viewLog();
-
-void createLog(){
-  for(int i=0; i<MAX_PRODUCTS; i++){
-    products[i] = {i, "Unknown", 0};
-  }
-}
-
-void logUpdate(int product, bool process, int quantity){
-  Serial.printf("Product: %i\r\n Process: ",product);
-  Serial.println(process ? "true" : "false");
-  Serial.printf("Quantity: %i\r\n",quantity);
-  if(process){
-    products[product].quantity += quantity;
-  }else{
-    products[product].quantity -= quantity;
-  }
-}
-
-void viewLog(){
-  Serial.println("------LOG------");
-  for(int i=0; i<MAX_PRODUCTS; i++){
-    
-    Serial.printf("ID: %i\r\n",products[i].id);
-    Serial.println("Name: " + products[i].product_name);
-    Serial.printf("Cantidad: %i\r\n",products[i].quantity);
-  }
-}
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>

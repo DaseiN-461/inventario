@@ -8,8 +8,9 @@ void setup() {
   touchButtons_init();
 
   setup_wifi();
-  
+
   fetchInventory();
+  
 
   
 

@@ -3,7 +3,7 @@ const char* ssid = "Copérnico 5G";
 const char* password = "MMM...copito";
 
 // URL del script de Google Apps Script
-const char* scriptUrl = "https://script.google.com/macros/s/AKfycbyzmbO4d70uM426vGb-P67jTANACuJ9tkI4sopNVSqS_l3TjI8iTn9jTHcbKNhxDP5K/exec";
+const char* scriptUrl = "https://script.google.com/macros/s/AKfycbzFop4eAlW-SQmdpQPdjQ4Z2A5s3QfRlU6qIFyvOO38krX_ozfMPPpody7apoFfJgph/exec";
 
 const int MAX_PRODUCTS = 20;
 
@@ -13,6 +13,7 @@ const int MAX_PRODUCTS = 20;
 class Product {
   public:
     String name;
+    bool updated;
     int quantity;
 
     Product() {}
@@ -27,7 +28,8 @@ class Product {
 
 // Arreglo de productos
 Product inventory[MAX_PRODUCTS];
-
+Product inventory_from_update[MAX_PRODUCTS];
+String lastUpdate;
 
 // Variables temporales
 // producto seleccionado

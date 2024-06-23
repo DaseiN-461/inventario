@@ -43,7 +43,7 @@ void productSelection(){
   if(touchUpPressed){
         delay(delay_time);
         button_release();
-        if(temp_product<MAX_PRODUCTS){
+        if(inventory[temp_product+1].name != "No registrado"){
           temp_product++;
         }
         Serial.printf("\tProducto seleccionado: %s\r\n",inventory[temp_product].name);
@@ -83,9 +83,13 @@ void quantitySelection(){
   if(touchUpPressed){
         delay(delay_time);
         button_release();
-
-        temp_quantity++;
+        Serial.printf("Name %s, quantity %d", inventory[temp_product].name, inventory[temp_product].quantity);
+        if(temp_process == false){
+          if(temp_quantity < inventory[temp_product].quantity){
+            temp_quantity++;
+          }
         
+        }
         Serial.printf("\tCantidad seleccionado: %i\r\n",temp_quantity);
   }
 }
@@ -97,7 +101,7 @@ void FSM_UI_Handler(){
       
       if(touchRightPressed){
         FSM_next_state(sel_process);
-        
+        Serial.printf("Product selected: %s\r\n",inventory[temp_product].name);
       }
       
       break;
@@ -105,6 +109,7 @@ void FSM_UI_Handler(){
     case sel_process:
       if(touchSelPressed){
         FSM_next_state(sel_quantity);
+        Serial.printf("Product selected: %s\r\n",inventory[temp_product].name);
       }
       if(touchLeftPressed){
         FSM_next_state(sel_product);
@@ -122,6 +127,8 @@ void FSM_UI_Handler(){
 
         sendInventory();
         
+        button_release();
+        currentStateUI = sel_product;
         temp_product = 0;
         temp_process = false;
         temp_quantity = 0;
@@ -130,6 +137,8 @@ void FSM_UI_Handler(){
              
       }
       if(touchLeftPressed){
+        button_release();
+        temp_quantity = 0;
         FSM_next_state(sel_process);
       }
       quantitySelection();

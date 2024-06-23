@@ -1,14 +1,16 @@
 #include "defs.h"
-
+#include <time.h>
 
 
 
 void setup_wifi();
 void viewLog();
 void fetchInventory();
+bool updateVerify();
 void modifyInventory(int id, bool _process, int _quantity);
 void sendInventory();
-
+void save_updateTime();
+void updateInventory();
 void save_log_in_eeprom();
 // La información guardada en la EEPROM sólo servirá en caso de que la conexion
 // con la base de datos falle. Cuando actualice la información y encuentre
@@ -45,65 +47,104 @@ void setup_wifi() {
 void viewLog(){
   Serial.println("------INVENTARIO------");
   for(int i=0; i<MAX_PRODUCTS; i++){
-    Serial.println("Name: " + inventory[i].name);
-    Serial.printf("Cantidad: %i\r\n",inventory[i].quantity);
+    if(inventory[i].name != "No registrado"){
+      Serial.print("Name: " + inventory[i].name);
+      Serial.printf(", Cantidad: %i,",inventory[i].quantity);
+      Serial.println(inventory[i].updated ? "Actualizado" : "No actualizado");
+    }
   }
 }
 
 void fetchInventory() {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.begin(scriptUrl);
+  HTTPClient http;
+  http.begin(scriptUrl);
+  int httpCode = http.GET();
 
-    int httpResponseCode = http.GET();
-
-    // Manejar redirecciones
-    while (httpResponseCode == HTTP_CODE_MOVED_PERMANENTLY || httpResponseCode == HTTP_CODE_FOUND) {
-      String newLocation = http.getLocation();
-      http.end();
-      http.begin(newLocation);
-      httpResponseCode = http.GET();
-    }
-
-    if (httpResponseCode > 0) {
-      String response = http.getString();
-      Serial.println(httpResponseCode);
-      Serial.println(response);
-
-      // Parsear JSON
-      StaticJsonDocument<1024> doc;
-      DeserializationError error = deserializeJson(doc, response);
-
-      if (!error) {
-        JsonArray array = doc.as<JsonArray>();
-
-        for (int i = 0; i < array.size(); i++) {
-          JsonObject obj = array[i];
-          inventory[i].name = obj["name"].as<String>();
-          inventory[i].quantity = obj["quantity"].as<int>();
-        }
-
-        // Imprimir inventario actualizado
-        for (int i = 0; i < 20; i++) {
-          Serial.print("Producto: ");
-          Serial.print(inventory[i].name);
-          Serial.print(" - Cantidad: ");
-          Serial.println(inventory[i].quantity);
-        }
-      } else {
-        Serial.print("Error al parsear JSON: ");
-        Serial.println(error.c_str());
-      }
-    } else {
-      Serial.print("Error en la petición HTTP: ");
-      Serial.println(httpResponseCode);
-    }
+  // Manejar redirecciones
+  while (httpCode == HTTP_CODE_MOVED_PERMANENTLY || httpCode == HTTP_CODE_FOUND) {
+    String newLocation = http.getLocation();
     http.end();
-  } else {
-    Serial.println("WiFi no conectado");
+    http.begin(newLocation);
+    httpCode = http.GET();
   }
-  viewLog();
+
+  if (httpCode == HTTP_CODE_OK) {
+    String payload = http.getString();
+    //Serial.println("Datos recibidos:");
+    //Serial.println(payload);
+
+    DynamicJsonDocument doc(2048);
+    DeserializationError error = deserializeJson(doc, payload);
+
+    if (error) {
+      Serial.print("Error al parsear JSON: ");
+      Serial.println(error.c_str());
+      return;
+    }
+
+    JsonArray jsonArray = doc["inventory"];
+    const char* lastUpdate = doc["lastUpdate"];
+
+    Serial.println("Actualizando inventario:");
+    int i=0;
+    for (JsonObject item : jsonArray) {
+      const char* name = item["name"];
+      int quantity = item["quantity"];
+      inventory_from_update[i].name = name;
+      inventory_from_update[i].quantity = quantity;
+      inventory_from_update[i].updated = true;
+      i++;
+    }
+
+    updateInventory();
+    
+    viewLog();
+      
+    // Convertir la cadena de fecha y hora a time_t
+    struct tm tm;
+    if (strptime(lastUpdate, "%Y-%m-%dT%H:%M:%S", &tm) != NULL) {
+      time_t lastUpdateTime = mktime(&tm);
+      Serial.print("Última actualización: ");
+      Serial.printf("%d/%d\t%d:%d:%d",tm.tm_mon+1,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
+    } else {
+      Serial.println("Error al convertir la fecha y hora");
+    }
+    
+
+  } else {
+    Serial.print("Error en la petición HTTP: ");
+    Serial.println(httpCode);
+  }
+
+  http.end();
+  
 }
+
+bool updateVerify(){
+    bool inventoryMatch = true;
+    // Verificar si la actualización no tiene conflictos
+    Serial.println("Verificando conflictos con la actualizacion");
+    
+    for(int i=0;i<MAX_PRODUCTS;i++){
+      if(inventory_from_update[i].name != "No registrado"){
+        inventory[i].updated = true;
+        if(inventory_from_update[i].name != inventory[i].name){
+          Serial.print("Nombre del producto ");
+          Serial.println(i);
+          inventory[i].updated = false;
+          inventoryMatch = false;
+        }
+        if(inventory_from_update[i].quantity != inventory[i].quantity){
+          Serial.print("La cantidad del producto ");
+          Serial.println(i);
+          inventory[i].updated = false;
+          inventoryMatch = false;
+        }
+      }
+    }
+    return inventoryMatch;
+}
+
 
 void modifyInventory(int id, bool _process, int _quantity) {
   if(_process){
@@ -159,9 +200,30 @@ void sendInventory() {
   }
 }
 
-
+void updateInventory(){
+  // Verifica si updateverify está definida
+  #ifdef updateVerify
+    if(updateVerify()){
+      for(int i=0;i<MAX_PRODUCTS;i++){
+        inventory[i]=inventory_from_update[i];
+      }
+      Serial.print("Inventario actualizado,\tÚltima actualización:");
+      Serial.println(lastUpdate);
+    }  
+  #else
+    for(int i=0;i<MAX_PRODUCTS;i++){
+      inventory[i]=inventory_from_update[i];
+    }
+    Serial.print("Inventario actualizado,\tÚltima actualización:");
+    Serial.println(lastUpdate);
+  #endif
+}
 
 void save_log_in_eeprom(){
   // Implementar funcion para guardar el registo en la memoria no volatil
   Serial.println("Guardar en la eeprom (falta implementar)");
+}
+
+void save_updateTime(){
+  
 }

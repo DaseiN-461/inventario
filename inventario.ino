@@ -1,18 +1,22 @@
 #include "FSM.h"
 
-#include 
+
 
 void setup() {
   Serial.begin(115200);
 
   touchButtons_init();
 
+  setup_wifi();
   
-  log_init();
+  fetchInventory();
+
+  
+
   
 }
 
 void loop() {
   FSM_UI_Handler();
-  //FSM_UI_output();
+ 
 }

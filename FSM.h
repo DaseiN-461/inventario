@@ -38,7 +38,7 @@ void productSelection(){
         if(temp_product>0){
           temp_product--;
         }
-        Serial.printf("\tProducto seleccionado: %i\r\n",temp_product);
+        Serial.printf("\tProducto seleccionado: %s\r\n",inventory[temp_product].name);
   }
   if(touchUpPressed){
         delay(delay_time);
@@ -46,7 +46,7 @@ void productSelection(){
         if(temp_product<MAX_PRODUCTS){
           temp_product++;
         }
-        Serial.printf("\tProducto seleccionado: %i\r\n",temp_product);
+        Serial.printf("\tProducto seleccionado: %s\r\n",inventory[temp_product].name);
   }
 }
 
@@ -59,14 +59,14 @@ void temp_processSelection(){
         button_release();
         temp_process = false;
         Serial.printf("\t\ttemp_process: ");
-        Serial.println(temp_process ? "true" : "false");
+        Serial.println(temp_process ? "Añadir" : "Quitar");
   }
   if(touchUpPressed){
         delay(delay_time);
         button_release();
         temp_process = true;
         Serial.printf("\t\ttemp_process: ");
-        Serial.println(temp_process ? "true" : "false");
+        Serial.println(temp_process ? "Añadir" : "Quitar");
   }
 }
 
@@ -115,12 +115,19 @@ void FSM_UI_Handler(){
     case sel_quantity:
       if(touchRightPressed){
         FSM_next_state(sel_product);  
-        logUpdate(temp_product,temp_process,temp_quantity);
+        modifyInventory(temp_product, temp_process, temp_quantity);
+
+        //save_log_in_eeprom();
+        viewLog();
+
+        sendInventory();
+        
         temp_product = 0;
         temp_process = false;
         temp_quantity = 0;
-        save_log_in_eeprom();
-        viewLog();     
+        
+        
+             
       }
       if(touchLeftPressed){
         FSM_next_state(sel_process);
